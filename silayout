@@ -1,0 +1,88 @@
+0 : VERSION
+9 : RESERVED
+/home/katy/dev/nx/makelist.ml
+0 : active
+166 : nlines
+105 : scroll_y
+0 : cursor_x
+131 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+/home/katy/dev/nx/main.cpp
+0 : active
+611 : nlines
+0 : scroll_y
+0 : cursor_x
+0 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+/home/katy/dev/nx/graphics/nxsurface.cpp
+0 : active
+397 : nlines
+289 : scroll_y
+53 : cursor_x
+311 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+/home/katy/dev/nx/graphics/graphics.cpp
+0 : active
+366 : nlines
+11 : scroll_y
+24 : cursor_x
+17 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+/home/katy/dev/nx/graphics/palette.cpp
+0 : active
+91 : nlines
+16 : scroll_y
+0 : cursor_x
+29 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+/home/katy/dev/nx/graphics/palette.h
+0 : active
+10 : nlines
+0 : scroll_y
+0 : cursor_x
+4 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+/home/katy/dev/nx/tsc.cpp
+1 : active
+1329 : nlines
+579 : scroll_y
+0 : cursor_x
+534 : cursor_y
+0 : cursor_mode
+1 : selection_present
+0 : selection_x1
+534 : selection_y1
+29 : selection_x2
+535 : selection_y2
+-
+/home/katy/dev/nx/TextBox/TextBox.cpp
+0 : active
+386 : nlines
+90 : scroll_y
+36 : cursor_x
+107 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+/home/katy/dev/nx/TextBox/TextBox.h
+0 : active
+177 : nlines
+54 : scroll_y
+0 : cursor_x
+6 : cursor_y
+0 : cursor_mode
+0 : selection_present
+-
+*END*

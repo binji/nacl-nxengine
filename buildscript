@@ -1,0 +1,5 @@
+makegen +q
+tools/genobjnametable
+make -j4
+%nx
+hide
