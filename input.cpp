@@ -2,6 +2,11 @@
 #include "nx.h"
 #include "input.fdh"
 
+#ifdef __native_client__
+#include "ppapi_simple/ps_event.h"
+#include "SDL/SDL_nacl.h"
+#endif
+
 uint8_t mappings[SDLK_LAST];
 
 bool inputs[INPUT_COUNT];
@@ -122,11 +127,41 @@ void input_set_mappings(int *array)
 /*
 void c------------------------------() {}
 */
+#ifdef __native_client__
+void ProcessEvent(PSEvent* event) {
+  switch(event->type) {
+    case PSE_INSTANCE_HANDLEINPUT: {
+      printf("Input...\n");
+      PP_Resource event_resource = event->as_resource;
+      pp::InputEvent cpp_event(event_resource);
+      SDL_NACL_PushEvent(cpp_event);
+      break;
+    }
+
+    case PSE_INSTANCE_DIDCHANGEFOCUS: {
+      SDL_NACL_SetHasFocus(event->as_bool);
+      break;
+    }
+  }
+}
+#endif
 
 void input_poll(void)
 {
 SDL_Event evt;
 int ino, key;
+
+#ifdef __native_client__
+	{
+		/* Process all waiting events without blocking */
+		PSEvent* event = NULL;
+		while ((event = PSEventTryAcquire()) != NULL) {
+			ProcessEvent(event);
+			PSEventRelease(event);
+		}
+	}
+
+#endif
 	
 	while(SDL_PollEvent(&evt))
 	{

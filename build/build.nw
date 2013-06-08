@@ -1,0 +1,313 @@
+# vim: set syntax=python
+
+ARCHES=('x86_32', 'x86_64', 'arm')
+CONFIGS=('debug', 'release')
+arch_config={'arch': ARCHES, 'config': CONFIGS}
+debug_keys = {'config': 'debug'}
+release_keys = {'config': 'release'}
+
+Variable('nacl_sdk_root', Args['nacl_sdk_root'])
+Variable('toolchain_dir', '$nacl_sdk_root/toolchain')
+Variable('toolchain_dir_x86', '$toolchain_dir/%s_x86_newlib' % Args['platform'])
+Variable('toolchain_dir_arm', '$toolchain_dir/%s_arm_newlib' % Args['platform'])
+Variable('ar-arm', '$toolchain_dir_arm/bin/arm-nacl-ar')
+Variable('ar-x86_32', '$toolchain_dir_x86/bin/i686-nacl-ar')
+Variable('ar-x86_64', '$toolchain_dir_x86/bin/x86_64-nacl-ar')
+Variable('cc-arm', '$toolchain_dir_arm/bin/arm-nacl-gcc')
+Variable('cc-x86_32', '$toolchain_dir_x86/bin/i686-nacl-gcc')
+Variable('cc-x86_64', '$toolchain_dir_x86/bin/x86_64-nacl-gcc')
+Variable('cxx-arm', '$toolchain_dir_arm/bin/arm-nacl-g++')
+Variable('cxx-x86_32', '$toolchain_dir_x86/bin/i686-nacl-g++')
+Variable('cxx-x86_64', '$toolchain_dir_x86/bin/x86_64-nacl-g++')
+Variable('strip-arm', '$toolchain_dir_arm/bin/arm-nacl-strip')
+Variable('strip-x86_32', '$toolchain_dir_x86/bin/i686-nacl-strip')
+Variable('strip-x86_64', '$toolchain_dir_x86/bin/x86_64-nacl-strip')
+Variable('nmf', '$nacl_sdk_root/tools/create_nmf.py')
+
+Rule('cp', 'cp $in $out', 'COPY $out')
+Rule('cc', '$cc $ccflags -MMD -MF $out.d -c $in -o $out', 'CC $out',
+     depfile='$out.d')
+Rule('ar', '$ar rc $out $in', 'AR $out')
+Rule('link', '$cc $in $ldflags -o $out', 'LINK $out')
+Rule('nmf', '$nmf $in -o $out', 'NMF $out')
+Rule('zip', 'rm -f $out && zip -9 $out -j $in', 'ZIP $out')
+Rule('strip', '$strip $in -o $out', 'STRIP $out')
+
+sources = Build('out/{arch}/{config}/{inf:-ext}.o', 'cc', '{inf}') \
+    .Tag('{name}-sources')
+#lib = Build('out/{arch}/{config}/lib{name}.a', 'ar').Tag('{name}-lib')
+exe = Build('out/{name}_{arch}_{config}.nexe', 'link').Tag('{name}-exe')
+nmf = Build('out/{name}_{config}.nmf', 'nmf').Tag('{name}-nmf')
+#data = Build('out/{inf}', 'cp', 'data/{inf}').Tag('{name}-data')
+
+SOURCES = [
+  'ai/ai.cpp',
+  'ai/almond/almond.cpp',
+  'ai/balrog_common.cpp',
+  'ai/boss/balfrog.cpp',
+  'ai/boss/ballos.cpp',
+  'ai/boss/core.cpp',
+  'ai/boss/heavypress.cpp',
+  'ai/boss/ironhead.cpp',
+  'ai/boss/omega.cpp',
+  'ai/boss/sisters.cpp',
+  'ai/boss/undead_core.cpp',
+  'ai/boss/x.cpp',
+  'ai/egg/egg2.cpp',
+  'ai/egg/egg.cpp',
+  'ai/egg/igor.cpp',
+  'ai/final_battle/balcony.cpp',
+  'ai/final_battle/doctor_common.cpp',
+  'ai/final_battle/doctor.cpp',
+  'ai/final_battle/doctor_frenzied.cpp',
+  'ai/final_battle/final_misc.cpp',
+  'ai/final_battle/misery.cpp',
+  'ai/final_battle/sidekicks.cpp',
+  'ai/first_cave/first_cave.cpp',
+  'ai/hell/ballos_misc.cpp',
+  'ai/hell/ballos_priest.cpp',
+  'ai/hell/hell.cpp',
+  'ai/IrregularBBox.cpp',
+  'ai/last_cave/last_cave.cpp',
+  'ai/maze/balrog_boss_missiles.cpp',
+  'ai/maze/critter_purple.cpp',
+  'ai/maze/gaudi.cpp',
+  'ai/maze/labyrinth_m.cpp',
+  'ai/maze/maze.cpp',
+  'ai/maze/pooh_black.cpp',
+  'ai/npc/balrog.cpp',
+  'ai/npc/curly_ai.cpp',
+  'ai/npc/curly.cpp',
+  'ai/npc/misery.cpp',
+  'ai/npc/npcguest.cpp',
+  'ai/npc/npcplayer.cpp',
+  'ai/npc/npcregu.cpp',
+  'ai/oside/oside.cpp',
+  'ai/plantation/plantation.cpp',
+  'ai/sand/curly_boss.cpp',
+  'ai/sand/puppy.cpp',
+  'ai/sand/sand.cpp',
+  'ai/sand/toroko_frenzied.cpp',
+  'ai/sym/smoke.cpp',
+  'ai/sym/sym.cpp',
+  'ai/village/balrog_boss_running.cpp',
+  'ai/village/ma_pignon.cpp',
+  'ai/village/village.cpp',
+  'ai/weapons/blade.cpp',
+  'ai/weapons/bubbler.cpp',
+  'ai/weapons/fireball.cpp',
+  'ai/weapons/missile.cpp',
+  'ai/weapons/nemesis.cpp',
+  'ai/weapons/polar_mgun.cpp',
+  'ai/weapons/snake.cpp',
+  'ai/weapons/spur.cpp',
+  'ai/weapons/weapons.cpp',
+  'ai/weapons/whimstar.cpp',
+  'ai/weed/balrog_boss_flying.cpp',
+  'ai/weed/frenzied_mimiga.cpp',
+  'ai/weed/weed.cpp',
+  'autogen/AssignSprites.cpp',
+  'autogen/objnames.cpp',
+  'caret.cpp',
+  'common/BList.cpp',
+  'common/bufio.cpp',
+  'common/DBuffer.cpp',
+  'common/DString.cpp',
+  'common/FileBuffer.cpp',
+  'common/InitList.cpp',
+  'common/misc.cpp',
+  'common/stat.cpp',
+  'common/StringList.cpp',
+  'console.cpp',
+  'debug.cpp',
+  'endgame/credits.cpp',
+  'endgame/CredReader.cpp',
+  'endgame/island.cpp',
+  'endgame/misc.cpp',
+  'extract/crc.cpp',
+  'extract/extract.cpp',
+  'extract/extractfiles.cpp',
+  'extract/extractpxt.cpp',
+  'extract/extractstages.cpp',
+  'floattext.cpp',
+  'game.cpp',
+  'graphics/font.cpp',
+  'graphics/graphics.cpp',
+  'graphics/nxsurface.cpp',
+  'graphics/palette.cpp',
+  'graphics/safemode.cpp',
+  'graphics/sprites.cpp',
+  'graphics/tileset.cpp',
+  'input.cpp',
+  'intro/intro.cpp',
+  'intro/title.cpp',
+  'inventory.cpp',
+  'main.cpp',
+  'map.cpp',
+  'map_system.cpp',
+  'niku.cpp',
+  'object.cpp',
+  'ObjManager.cpp',
+  'p_arms.cpp',
+  'pause/dialog.cpp',
+  'pause/message.cpp',
+  'pause/objects.cpp',
+  'pause/options.cpp',
+  'pause/pause.cpp',
+  'platform.cpp',
+  'player.cpp',
+  'playerstats.cpp',
+  'profile.cpp',
+  'replay.cpp',
+  'screeneffect.cpp',
+  'settings.cpp',
+  'siflib/sectSprites.cpp',
+  'siflib/sectStringArray.cpp',
+  'siflib/sif.cpp',
+  'siflib/sifloader.cpp',
+  'siflib/sifupgrade.cpp',
+  'slope.cpp',
+  'sound/org.cpp',
+  'sound/pxt.cpp',
+  'sound/sound.cpp',
+  'sound/sslib.cpp',
+  'stageboss.cpp',
+  'stagedata.cpp',
+  'statusbar.cpp',
+  'TextBox/ItemImage.cpp',
+  'TextBox/SaveSelect.cpp',
+  'TextBox/StageSelect.cpp',
+  'TextBox/TextBox.cpp',
+  'TextBox/YesNoPrompt.cpp',
+  'trig.cpp',
+  'tsc.cpp',
+]
+
+INCLUDE_DIRS = [
+  '$nacl_sdk_root/include',
+  'third_party/include',
+  'third_party/include/SDL',
+]
+
+DEFINES = [
+]
+
+LIB_DIRS = [
+  '$nacl_sdk_root/lib/newlib_{arch}/Release',
+  'third_party/lib/newlib_{arch}',
+]
+
+LIBS = [
+  'ppapi_simple',
+  'nacl_io',
+  'SDL_ttf',
+  'freetype',
+  'SDL',
+  'z',
+  'ppapi_cpp',
+  'ppapi',
+  'nosys',
+]
+
+WARNINGS = [
+  'all',
+  'error',
+  'no-comment',
+  'no-delete-non-virtual-dtor',
+  'no-missing-braces',
+  'no-multichar',
+  'no-narrowing',
+  'no-sign-compare',
+  'no-switch',
+  'no-uninitialized',
+  'no-unused',
+  'no-unused-variable',
+]
+
+for b in sources.ForEach(name='nx', inf=SOURCES, **arch_config):
+  b.Set('ccflags', Prefix('-I', INCLUDE_DIRS))
+  b.Append('ccflags', Prefix('-D', DEFINES))
+  b.Append('ccflags', Prefix('-W', WARNINGS))
+
+for b in exe.ForEach(name='nx', **arch_config):
+  subkeys = b.SubKeys('arch', 'config')
+  b.Set('ldflags', Prefix('-L', LIB_DIRS))
+  b.Set('ldflags', Prefix('-l', LIBS))
+  b.Set('inputs', Select('nx-sources').And(keys=subkeys).outputs)
+
+for b in nmf.ForEach(name='nx', config=CONFIGS):
+  b.Append('inputs', Select('nx-exe').And(keys=b.SubKeys('config')).outputs)
+
+
+"""
+#
+# Data files
+#
+DATA_FILES = [
+]
+
+for b in data.ForEach(name='nx', inf=DATA_FILES):
+  pass
+
+#
+# Manifest files
+#
+Rule('manifest',
+     'script/generate_manifest.py -o $out -c $config -t $in $resources $key',
+     'MANIFEST $out',
+     implicit='script/generate_manifest.py')
+
+def GenerateManifest(out, config, with_key=True):
+  config_keys = {'config': config}
+  resources = Select('nx-exe').And(keys=config_keys).outputs
+  resources += Select('nx-nmf').And(keys=config_keys).outputs
+  resources = [Filename(n).Base for n in resources]
+  resources.append('filesystem.js')
+  key = '-k' if with_key else ''
+
+  return Build(out, 'manifest', 'data/manifest.json.template',
+               config=config, resources=resources, key=key)
+
+GenerateManifest('out/manifest.json', 'debug')
+GenerateManifest('out/package/manifest.json', 'release')
+GenerateManifest('out/package-release/manifest.json', 'release',
+                 with_key=False).Tag('package')
+
+
+# Copy data files to packagedir
+for b in Select('nx-data'):
+  n = Build('out/package/' + Filename(b.outputs).base, 'cp', b.outputs)
+  n.Tag('package')
+
+# Copy .nexes to packagedir, stripped.
+for b in Select('nx-exe', 'test-exe').And(keys=release_keys):
+  n = Build('out/package/' + Filename(b.outputs).Base, 'strip', b.outputs)
+  n.Set('strip', '$strip-' + b.keys['arch'])
+  n.Tag('package')
+
+# Copy .nmfs to packagedir
+for b in Select('nx-nmf', 'test-nmf').And(keys=release_keys):
+  n = Build('out/package/' + Filename(b.outputs).Base, 'cp', b.outputs)
+  n.Tag('package')
+
+# Zip files in package
+Build('out/package.zip', 'zip', Select('package').outputs)
+"""
+
+
+################################################################################
+
+for b in Select(keys=debug_keys).And(rule='cc'):
+  b.Append('ccflags', '-g -O0')
+for b in Select(keys=release_keys).And(rule='cc'):
+  b.Append('ccflags', '-g -O3')
+for b in Select(rule='cc'):
+  ext = Filename(b.inputs).Extension
+  if ext in ('.cc', '.cpp'):
+    b.Set('cc', '$cxx-{arch}')
+  elif ext == '.c':
+    b.Set('cc', '$cc-{arch}')
+for b in Select(rule='link'):
+  b.Set('cc', '$cxx-{arch}')
+for b in Select(rule='ar'):
+  b.Set('ar', '$ar-{arch}')

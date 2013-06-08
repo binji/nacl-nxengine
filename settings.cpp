@@ -37,7 +37,7 @@ bool settings_load(Settings *setfile)
 		setfile->emulate_bugs = false;
 		setfile->no_quake_in_hell = false;
 		setfile->inhibit_fullscreen = false;
-		setfile->files_extracted = true;
+		setfile->files_extracted = false;
 		
 		// I found that 8bpp->32bpp blits are actually noticably faster
 		// than 32bpp->32bpp blits on several systems I tested. Not sure why

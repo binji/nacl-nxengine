@@ -6,8 +6,10 @@
 
 #ifdef __clang__
 	#define MAXPATHLEN	256
-#else
+#elif defined(__GLIBC__)
 	#include <sys/param.h>	// MAXPATHLEN
+#else
+        #include <unistd.h>
 #endif
 
 #ifndef PATH_MAX

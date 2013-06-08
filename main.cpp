@@ -5,6 +5,13 @@
 #include "graphics/safemode.h"
 #include "main.fdh"
 
+#ifdef __native_client__
+#include "ppapi_simple/ps_instance.h"
+#include "ppapi_simple/ps_main.h"
+#include "SDL/SDL_nacl.h"
+#include "nacl_io/nacl_io.h"
+#endif
+
 const char *data_dir = "data";
 const char *stage_dir = "data/Stage";
 const char *pic_dir = "endpic";
@@ -20,8 +27,22 @@ int framecount = 0;
 bool freezeframe = false;
 int flipacceltime = 0;
 
+#ifdef __native_client__
+int my_main(int argc, const char **argv);
+PPAPI_SIMPLE_REGISTER_MAIN(my_main);
+
+int my_main(int argc, const char **argv)
+{
+	SDL_NACL_SetInstance(PSGetInstanceId(), 640, 480);
+	umount("/");
+	mount("/", "", "httpfs", 0, NULL);
+
+	PSEventSetFilter(PSE_INSTANCE_HANDLEINPUT | PSE_INSTANCE_DIDCHANGEFOCUS);
+
+#else
 int main(int argc, char *argv[])
 {
+#endif
 bool inhibit_loadfade = false;
 bool error = false;
 bool freshstart;
