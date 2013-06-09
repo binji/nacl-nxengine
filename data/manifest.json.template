@@ -1,0 +1,14 @@
+{
+  "name": "nxengine",
+  "version": "0.0.1",
+  "manifest_version": 2,
+  "description": "nxengine",
+  "app": {
+    "background": {
+      "scripts": ["background.js"]
+    }
+  },
+  "permissions": [
+    "unlimitedStorage"
+  ]
+}
