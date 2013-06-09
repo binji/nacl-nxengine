@@ -193,7 +193,7 @@ DEFINES = [
 ]
 
 LIB_DIRS = [
-  '$nacl_sdk_root/lib/newlib_{arch}/Release',
+  '$nacl_sdk_root/lib/newlib_{arch}/Debug',
   'third_party/lib/newlib_{arch}',
 ]
 
@@ -280,13 +280,13 @@ for b in Select('nx-data'):
   n.Tag('package')
 
 # Copy .nexes to packagedir, stripped.
-for b in Select('nx-exe', 'test-exe').And(keys=release_keys):
+for b in Select('nx-exe').And(keys=release_keys):
   n = Build('out/package/' + Filename(b.outputs).Base, 'strip', b.outputs)
   n.Set('strip', '$strip-' + b.keys['arch'])
   n.Tag('package')
 
 # Copy .nmfs to packagedir
-for b in Select('nx-nmf', 'test-nmf').And(keys=release_keys):
+for b in Select('nx-nmf').And(keys=release_keys):
   n = Build('out/package/' + Filename(b.outputs).Base, 'cp', b.outputs)
   n.Tag('package')
 

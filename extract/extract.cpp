@@ -58,7 +58,6 @@ bool result;
 		return 1;
 	}
 	
-	result = introduction();
 	#ifndef __SDLSHIM__
 	if (introduction() == SDLK_ESCAPE)
 	#else

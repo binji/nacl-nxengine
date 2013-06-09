@@ -131,7 +131,6 @@ void c------------------------------() {}
 void ProcessEvent(PSEvent* event) {
   switch(event->type) {
     case PSE_INSTANCE_HANDLEINPUT: {
-      printf("Input...\n");
       PP_Resource event_resource = event->as_resource;
       pp::InputEvent cpp_event(event_resource);
       SDL_NACL_PushEvent(cpp_event);

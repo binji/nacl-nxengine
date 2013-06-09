@@ -6,6 +6,14 @@
 #include "main.fdh"
 
 #ifdef __native_client__
+#include <dirent.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+
+#include <string>
+
 #include "ppapi_simple/ps_instance.h"
 #include "ppapi_simple/ps_main.h"
 #include "SDL/SDL_nacl.h"
@@ -31,11 +39,113 @@ int flipacceltime = 0;
 int my_main(int argc, const char **argv);
 PPAPI_SIMPLE_REGISTER_MAIN(my_main);
 
+const size_t kCopyBufferSize = 32 * 1024;
+char g_copy_buffer[kCopyBufferSize];
+
+void Copy(const char* src, const char* dst) {
+  printf("Copy from %s to %s\n", src, dst);
+  FILE* fsrc = NULL;
+  FILE* fdst = NULL;
+  struct stat statbuf;
+  int bytes_left;
+  int bytes_read;
+  int bytes_written;
+
+  fsrc = fileopen(src, "r");
+  if (!fsrc) {
+    fprintf(stderr, "fopen(%s) failed: %d\n", src, errno);
+    goto cleanup;
+  }
+
+  fdst = fileopen(dst, "w+");
+  if (!fdst) {
+    fprintf(stderr, "fopen(%s) failed: %d\n", dst, errno);
+    goto cleanup;
+  }
+
+  if (fstat(fileno(fsrc), &statbuf) != 0) {
+    fprintf(stderr, "fstat(%s) failed: %d\n", src, errno);
+    goto cleanup;
+  }
+
+  bytes_left = statbuf.st_size;
+
+  while (bytes_left > 0) {
+    int bytes_to_read = std::min<size_t>(kCopyBufferSize, bytes_left);
+    bytes_read = fread(&g_copy_buffer[0], 1, bytes_to_read, fsrc);
+    if (bytes_read != bytes_to_read) {
+      fprintf(stderr, "fread(%d) was short, %d.\n", bytes_to_read, bytes_read);
+      goto cleanup;
+    }
+
+    bytes_written = fwrite(&g_copy_buffer[0], 1, bytes_to_read, fdst);
+    if (bytes_written != bytes_to_read) {
+      fprintf(stderr, "fwrite(%d) was short, %d.\n",
+          bytes_to_read, bytes_written);
+      goto cleanup;
+    }
+
+    bytes_left -= bytes_read;
+  }
+
+cleanup:
+  if (fsrc) fclose(fsrc);
+  if (fdst) fclose(fdst);
+}
+
+void CopyRecurse(const char* http_path, const char* dst_dir) {
+  const char kHttp[] = "/http";
+  std::string dir_path(kHttp);
+  dir_path += http_path;
+
+  DIR* dir = opendir(dir_path.c_str());
+  if (!dir) {
+    fprintf(stderr, "opendir(%s): failed: %d\n", dir_path.c_str(), errno);
+    return;
+  }
+
+  dirent* dirent = NULL;
+  while ((dirent = readdir(dir)) != NULL) {
+    std::string http_file(http_path);
+    http_file += dirent->d_name;
+
+    std::string src_file = kHttp + http_file;
+
+    struct stat statbuf;
+    if (stat(src_file.c_str(), &statbuf) != 0) {
+      fprintf(stderr, "stat(%s) failed: %d\n", src_file.c_str(), errno);
+      return;
+    }
+
+    std::string dst_file(dst_dir);
+    dst_file += http_path;
+    dst_file += dirent->d_name;
+
+    if (S_ISREG(statbuf.st_mode)) {
+      Copy(src_file.c_str(), dst_file.c_str());
+    } else if (S_ISDIR(statbuf.st_mode)) {
+      std::string new_http_path(http_file);
+      new_http_path += '/';
+
+      mkdir(dst_file.c_str(), 0666);
+
+      CopyRecurse(new_http_path.c_str(), dst_dir);
+    }
+  }
+  closedir(dir);
+}
+
 int my_main(int argc, const char **argv)
 {
 	SDL_NACL_SetInstance(PSGetInstanceId(), 640, 480);
 	umount("/");
-	mount("/", "", "httpfs", 0, NULL);
+	mount("", "/", "memfs", 0, NULL);
+	mount("", "/http", "httpfs", 0, "manifest=/manifest.txt");
+
+	// Copy files from /http to the memory mount.
+	CopyRecurse("/", "");
+
+        mkdir("/pxt", 0666);
 
 	PSEventSetFilter(PSE_INSTANCE_HANDLEINPUT | PSE_INSTANCE_DIDCHANGEFOCUS);
 
@@ -46,8 +156,8 @@ int main(int argc, char *argv[])
 bool inhibit_loadfade = false;
 bool error = false;
 bool freshstart;
-	
-	SetLogFilename("debug.txt");
+
+	//SetLogFilename("debug.txt");
 	if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_AUDIO) < 0)
 	{
 		staterr("ack, sdl_init failed: %s.", SDL_GetError());
