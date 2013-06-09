@@ -239,6 +239,32 @@ for b in nmf.ForEach(name='nx', config=CONFIGS):
   b.Append('inputs', Select('nx-exe').And(keys=b.SubKeys('config')).outputs)
 
 
+"""
+#
+# Download game data
+#
+GAME_DATA_URL = 'http://www.cavestory.org/downloads/cavestoryen.zip'
+Rule('wget', 'wget -O $out $url', 'WGET $out')
+Build('out/cavestoryen.zip', 'wget', url=GAME_DATA_URL)
+
+
+#
+# Unzip game data
+#
+Rule('unzip-data', 'unzip -qu $in -d $outdir', 'UNZIP-DATA $in')
+Build('out/CaveStory', 'unzip-data', 'out/cavestoryen.zip', outdir='out')
+
+Rule('copy-unzipped-data',
+    'cp -r $in/Doukutsu.exe $in/data $outdir',
+    'COPY-UNZIPPED-DATA $outdir')
+Build(['out/Doukutsu.exe', 'out/data'], 'copy-unzipped-data',
+      'out/CaveStory', outdir='out')
+
+Build(['out/package/Doukutsu.exe', 'out/package/data'], 'copy-unzipped-data',
+      'out/CaveStory', outdir='out/package').Tag('package')
+"""
+
+
 #
 # Data files
 #
@@ -255,22 +281,36 @@ for b in data.ForEach(name='nx', inf=DATA_FILES):
 
 
 #
-# Manifest files
+# HTTP manifest
+#
+Rule('http-manifest',
+     '$nacl_sdk_root/tools/genhttpfs.py -C $outdir -o $out -r $rel_in',
+     'HTTP-MANIFEST $out')
+
+HTTP_MANIFEST_FILES = [
+  'font.ttf',
+  'sprites.sif',
+  'tilekey.dat',
+]
+OUT_HTTP_MANIFEST_FILES = ['out/' + f for f in HTTP_MANIFEST_FILES]
+
+Build('out/manifest.txt', 'http-manifest', OUT_HTTP_MANIFEST_FILES,
+    rel_in=HTTP_MANIFEST_FILES, outdir='out').Tag('nx-data')
+
+
+#
+# Packaged App Manifest files
 #
 Rule('manifest',
-     'script/generate_manifest.py -o $out -c $config -t $in $resources $key',
+     'script/generate_manifest.py -o $out -c $config -t $in $key',
      'MANIFEST $out',
      implicit='script/generate_manifest.py')
 
 def GenerateManifest(out, config, with_key=True):
   config_keys = {'config': config}
-  resources = Select('nx-exe').And(keys=config_keys).outputs
-  resources += Select('nx-nmf').And(keys=config_keys).outputs
-  resources = [Filename(n).Base for n in resources]
   key = '-k' if with_key else ''
-
   return Build(out, 'manifest', 'data/manifest.json.template',
-               config=config, resources=resources, key=key)
+               config=config, key=key)
 
 GenerateManifest('out/manifest.json', 'debug')
 GenerateManifest('out/package/manifest.json', 'release')

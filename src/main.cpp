@@ -142,7 +142,6 @@ int my_main(int argc, const char **argv)
 	mount("", "/", "memfs", 0, NULL);
 	mount("", "/http", "httpfs", 0, "manifest=/manifest.txt");
 
-	// Copy files from /http to the memory mount.
 	CopyRecurse("/", "");
 
         mkdir("/pxt", 0666);
