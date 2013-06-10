@@ -203,6 +203,7 @@ int my_main(int argc, const char **argv)
 	umount("/");
 	mount("", "/", "memfs", 0, NULL);
 	mount("", "/http", "httpfs", 0, "manifest=/manifest.txt");
+	mount("", "/save", "html5fs", 0, "type=PERSISTENT");
 
 	CopyFile("/http/cavestoryen.zip", "/cavestoryen.zip");
 	CopyFile("/http/font.ttf", "/font.ttf");

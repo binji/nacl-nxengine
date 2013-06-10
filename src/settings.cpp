@@ -8,7 +8,11 @@
 #include "replay.h"
 #include "settings.fdh"
 
+#ifdef __native_client__
+const char *setfilename = "save/settings.dat";
+#else
 const char *setfilename = "settings.dat";
+#endif
 const uint16_t SETTINGS_VERSION = 0x1602;		// serves as both a version and magic
 
 Settings normal_settings;
@@ -55,6 +59,10 @@ bool settings_load(Settings *setfile)
 		#else
 			stat("settings_load(): Hey FIXME!!!");
 			settings->show_fps = true;
+		#endif
+
+		#ifdef __native_client__
+			setfile->files_extracted = false;
 		#endif
 	}
 	

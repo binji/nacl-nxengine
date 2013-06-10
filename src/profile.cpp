@@ -12,6 +12,12 @@
 #define MAX_WPN_SLOTS		8
 #define MAX_TELE_SLOTS		8
 
+#ifdef __native_client__
+#define PROFILE_DIR "save/"
+#else
+#define PROFILE_DIR ""
+#endif
+
 // load savefile #num into the given Profile structure.
 bool profile_load(const char *pfname, Profile *file)
 {
@@ -228,9 +234,9 @@ void c------------------------------() {}
 const char *GetProfileName(int num)
 {
 	if (num == 0)
-		return "profile.dat";
+		return PROFILE_DIR "profile.dat";
 	else
-		return stprintf("profile%d.dat", num+1);
+		return stprintf(PROFILE_DIR "profile%d.dat", num+1);
 }
 
 // returns whether the given save file slot exists
