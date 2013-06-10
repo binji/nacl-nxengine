@@ -294,6 +294,11 @@ void c------------------------------() {}
 static int AddBuffer(SSChannel *chan, int bytes)
 {
 	SSChunk *chunk = &chan->chunks[chan->head];
+#ifdef __native_client__
+        int samples = bytes / 4;
+        int mix_bytes = samples * 4;
+        bytes = samples * 2;
+#endif
 	
 	if (bytes > chunk->bytelength)
 	{
@@ -314,11 +319,27 @@ static int AddBuffer(SSChannel *chan, int bytes)
 	}
 	
 //	stat("%d: Channel %d: Copying %d bytes from chunk %d @ %08x -- pos=%d, len=%d", SDL_GetTicks(), cnn, bytes, c, chunk->bytebuffer, chunk->bytepos, chunk->bytelength);
+#ifdef __native_client__
+        signed short* s16_mix = reinterpret_cast<signed short*>(&mixbuffer[mix_pos]);
+        signed short* s16_chunk = reinterpret_cast<signed short*>(&chunk->bytebuffer[chunk->bytepos]);
+
+        for (int i = 0; i < samples; ++i) {
+          signed short data = *s16_chunk++;
+          *s16_mix++ = data;
+          *s16_mix++ = data;
+        }
+	mix_pos += mix_bytes;
+#else
 	memcpy(&mixbuffer[mix_pos], &chunk->bytebuffer[chunk->bytepos], bytes);
 	mix_pos += bytes;
+#endif
 	chunk->bytepos += bytes;
 	
+#ifdef __native_client__
+        return mix_bytes;
+#else
 	return bytes;
+#endif
 }
 
 
