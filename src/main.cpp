@@ -205,11 +205,10 @@ int my_main(int argc, const char **argv)
 	mount("", "/http", "httpfs", 0, "manifest=/manifest.txt");
 	mount("", "/save", "html5fs", 0, "type=PERSISTENT");
 
-	CopyFile("/http/cavestoryen.zip", "/cavestoryen.zip");
 	CopyFile("/http/font.ttf", "/font.ttf");
 	CopyFile("/http/sprites.sif", "/sprites.sif");
 	CopyFile("/http/tilekey.dat", "/tilekey.dat");
-	ExtractGameZip("/http/cavestoryen.zip");
+	ExtractGameZip("/save/cavestoryen.zip");
 
 	mkdir("/pxt", 0666);
 

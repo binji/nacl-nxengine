@@ -9,6 +9,7 @@
     }
   },
   "permissions": [
-    "unlimitedStorage"
+    "unlimitedStorage",
+    "http://*.cavestory.org/downloads/cavestoryen.zip"
   ]
 }

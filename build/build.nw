@@ -253,11 +253,9 @@ DATA_FILES = [
   'background.js',
   'font.ttf',
   'index.html',
+  'main.js',
   'sprites.sif',
   'tilekey.dat',
-
-  # temporary
-  'cavestoryen.zip'
 ]
 
 for b in data.ForEach(name='nx', inf=DATA_FILES):

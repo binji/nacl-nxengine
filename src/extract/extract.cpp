@@ -7,6 +7,12 @@
 #include "../graphics/safemode.h"
 #include "extract.fdh"
 
+#ifdef __native_client__
+#define DISPLAY_INTRO_AND_CONCLUSION 0
+#else
+#define DISPLAY_INTRO_AND_CONCLUSION 1
+#endif
+
 using safemode::print;
 using safemode::status;
 using safemode::clearstatus;
@@ -58,6 +64,7 @@ bool result;
 		return 1;
 	}
 	
+	#if DISPLAY_INTRO_AND_CONCLUSION
 	#ifndef __SDLSHIM__
 	if (introduction() == SDLK_ESCAPE)
 	#else
@@ -66,10 +73,13 @@ bool result;
 	{
 		return 1;
 	}
+	#endif
 	
 	result = extract_do();
+	#if DISPLAY_INTRO_AND_CONCLUSION
 	if (!result)
 		conclusion();
+	#endif
 	
 	safemode::close();
 	return result;
