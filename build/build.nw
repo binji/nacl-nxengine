@@ -25,7 +25,7 @@ Variable('strip-x86_64', '$toolchain_dir_x86/bin/x86_64-nacl-strip')
 Variable('nmf', '$nacl_sdk_root/tools/create_nmf.py')
 
 Rule('cp', 'cp $in $out', 'COPY $out')
-Rule('cc', '$cc $ccflags -MMD -MF $out.d -c $in -o $out', 'CC $out',
+Rule('cc', '$cc $cflags -MMD -MF $out.d -c $in -o $out', 'CC $out',
      depfile='$out.d')
 Rule('ar', '$ar rc $out $in', 'AR $out')
 Rule('link', '$cc $in $ldflags -o $out', 'LINK $out')
@@ -155,6 +155,8 @@ SOURCES = [
   'src/pause/options.cpp',
   'src/pause/pause.cpp',
   'src/platform.cpp',
+  'src/platform/NaCl/ioapi.c',
+  'src/platform/NaCl/unzip.c',
   'src/player.cpp',
   'src/playerstats.cpp',
   'src/profile.cpp',
@@ -213,10 +215,10 @@ WARNINGS = [
   'all',
   'error',
   'no-comment',
-  'no-delete-non-virtual-dtor',
   'no-missing-braces',
   'no-multichar',
   'no-narrowing',
+  'no-parentheses',
   'no-sign-compare',
   'no-switch',
   'no-uninitialized',
@@ -224,10 +226,15 @@ WARNINGS = [
   'no-unused-variable',
 ]
 
+CXX_WARNINGS = [
+  'no-delete-non-virtual-dtor',
+]
+
 for b in sources.ForEach(name='nx', inf=SOURCES, **arch_config):
-  b.Set('ccflags', Prefix('-I', INCLUDE_DIRS))
-  b.Append('ccflags', Prefix('-D', DEFINES))
-  b.Append('ccflags', Prefix('-W', WARNINGS))
+  b.Set('cflags', Prefix('-I', INCLUDE_DIRS))
+  b.Append('cflags', Prefix('-D', DEFINES))
+  b.Append('cflags', Prefix('-W', WARNINGS))
+  b.Append('cxxflags', Prefix('-W', CXX_WARNINGS))
 
 for b in exe.ForEach(name='nx', **arch_config):
   subkeys = b.SubKeys('arch', 'config')
@@ -239,32 +246,6 @@ for b in nmf.ForEach(name='nx', config=CONFIGS):
   b.Append('inputs', Select('nx-exe').And(keys=b.SubKeys('config')).outputs)
 
 
-"""
-#
-# Download game data
-#
-GAME_DATA_URL = 'http://www.cavestory.org/downloads/cavestoryen.zip'
-Rule('wget', 'wget -O $out $url', 'WGET $out')
-Build('out/cavestoryen.zip', 'wget', url=GAME_DATA_URL)
-
-
-#
-# Unzip game data
-#
-Rule('unzip-data', 'unzip -qu $in -d $outdir', 'UNZIP-DATA $in')
-Build('out/CaveStory', 'unzip-data', 'out/cavestoryen.zip', outdir='out')
-
-Rule('copy-unzipped-data',
-    'cp -r $in/Doukutsu.exe $in/data $outdir',
-    'COPY-UNZIPPED-DATA $outdir')
-Build(['out/Doukutsu.exe', 'out/data'], 'copy-unzipped-data',
-      'out/CaveStory', outdir='out')
-
-Build(['out/package/Doukutsu.exe', 'out/package/data'], 'copy-unzipped-data',
-      'out/CaveStory', outdir='out/package').Tag('package')
-"""
-
-
 #
 # Data files
 #
@@ -273,7 +254,10 @@ DATA_FILES = [
   'font.ttf',
   'index.html',
   'sprites.sif',
-  'tilekey.dat'
+  'tilekey.dat',
+
+  # temporary
+  'cavestoryen.zip'
 ]
 
 for b in data.ForEach(name='nx', inf=DATA_FILES):
@@ -287,15 +271,8 @@ Rule('http-manifest',
      '$nacl_sdk_root/tools/genhttpfs.py -C $outdir -o $out -r $rel_in',
      'HTTP-MANIFEST $out')
 
-HTTP_MANIFEST_FILES = [
-  'font.ttf',
-  'sprites.sif',
-  'tilekey.dat',
-]
-OUT_HTTP_MANIFEST_FILES = ['out/' + f for f in HTTP_MANIFEST_FILES]
-
-Build('out/manifest.txt', 'http-manifest', OUT_HTTP_MANIFEST_FILES,
-    rel_in=HTTP_MANIFEST_FILES, outdir='out').Tag('nx-data')
+Build('out/manifest.txt', 'http-manifest', Select('nx-data').outputs,
+    rel_in=DATA_FILES, outdir='out').Tag('nx-data')
 
 
 #
@@ -341,13 +318,14 @@ Build('out/package.zip', 'zip', Select('package').outputs)
 ################################################################################
 
 for b in Select(keys=debug_keys).And(rule='cc'):
-  b.Append('ccflags', '-g -O0')
+  b.Append('cflags', '-g -O0')
 for b in Select(keys=release_keys).And(rule='cc'):
-  b.Append('ccflags', '-g -O3')
+  b.Append('cflags', '-g -O3')
 for b in Select(rule='cc'):
   ext = Filename(b.inputs).Extension
   if ext in ('.cc', '.cpp'):
     b.Set('cc', '$cxx-{arch}')
+    b.Append('cflags', b.cxxflags)
   elif ext == '.c':
     b.Set('cc', '$cc-{arch}')
 for b in Select(rule='link'):

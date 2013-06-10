@@ -5,21 +5,6 @@
 #include "graphics/safemode.h"
 #include "main.fdh"
 
-#ifdef __native_client__
-#include <dirent.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <stdio.h>
-
-#include <string>
-
-#include "ppapi_simple/ps_instance.h"
-#include "ppapi_simple/ps_main.h"
-#include "SDL/SDL_nacl.h"
-#include "nacl_io/nacl_io.h"
-#endif
-
 const char *data_dir = "data";
 const char *stage_dir = "data/Stage";
 const char *pic_dir = "endpic";
@@ -36,13 +21,30 @@ bool freezeframe = false;
 int flipacceltime = 0;
 
 #ifdef __native_client__
+
+#include <dirent.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <stdio.h>
+
+#include <string>
+
+#include "ppapi_simple/ps_instance.h"
+#include "ppapi_simple/ps_main.h"
+#include "SDL/SDL_nacl.h"
+#include "nacl_io/nacl_io.h"
+
+#include "platform/NaCl/unzip.h"
+
+
 int my_main(int argc, const char **argv);
 PPAPI_SIMPLE_REGISTER_MAIN(my_main);
 
 const size_t kCopyBufferSize = 32 * 1024;
 char g_copy_buffer[kCopyBufferSize];
 
-void Copy(const char* src, const char* dst) {
+void CopyFile(const char* src, const char* dst) {
   printf("Copy from %s to %s\n", src, dst);
   FILE* fsrc = NULL;
   FILE* fdst = NULL;
@@ -81,7 +83,7 @@ void Copy(const char* src, const char* dst) {
     bytes_written = fwrite(&g_copy_buffer[0], 1, bytes_to_read, fdst);
     if (bytes_written != bytes_to_read) {
       fprintf(stderr, "fwrite(%d) was short, %d.\n",
-          bytes_to_read, bytes_written);
+              bytes_to_read, bytes_written);
       goto cleanup;
     }
 
@@ -93,46 +95,106 @@ cleanup:
   if (fdst) fclose(fdst);
 }
 
-void CopyRecurse(const char* http_path, const char* dst_dir) {
-  const char kHttp[] = "/http";
-  std::string dir_path(kHttp);
-  dir_path += http_path;
+void ExtractGameZip(const char* zip_path) {
+  unzFile zip_file = NULL;
+  bool file_open = false;
 
-  DIR* dir = opendir(dir_path.c_str());
-  if (!dir) {
-    fprintf(stderr, "opendir(%s): failed: %d\n", dir_path.c_str(), errno);
-    return;
+  zip_file = unzOpen(zip_path);
+  if (zip_file == NULL) {
+    fprintf(stderr, "unzOpen(%s) failed.", zip_path);
+    goto cleanup;
   }
 
-  dirent* dirent = NULL;
-  while ((dirent = readdir(dir)) != NULL) {
-    std::string http_file(http_path);
-    http_file += dirent->d_name;
+  if (unzGoToFirstFile(zip_file) != UNZ_OK) {
+    fprintf(stderr, "unzGoToFirstFile failed.");
+    goto cleanup;
+  }
 
-    std::string src_file = kHttp + http_file;
+  while (true) {
+    unz_file_info file_info;
+    char file_name[MAXPATHLEN];
+    char* first_slash;
 
-    struct stat statbuf;
-    if (stat(src_file.c_str(), &statbuf) != 0) {
-      fprintf(stderr, "stat(%s) failed: %d\n", src_file.c_str(), errno);
-      return;
+    if (unzGetCurrentFileInfo(zip_file, &file_info, &file_name[0], MAXPATHLEN,
+                              NULL, 0, NULL, 0) != UNZ_OK) {
+      fprintf(stderr, "unzGetCurrentFileInfo failed.");
+      goto cleanup;
     }
 
-    std::string dst_file(dst_dir);
-    dst_file += http_path;
-    dst_file += dirent->d_name;
+    // Is this a file we want to extract?
+    printf("Examining %s...\n", file_name);
 
-    if (S_ISREG(statbuf.st_mode)) {
-      Copy(src_file.c_str(), dst_file.c_str());
-    } else if (S_ISDIR(statbuf.st_mode)) {
-      std::string new_http_path(http_file);
-      new_http_path += '/';
+    // Find first slash in filename.
+    first_slash = strchr(file_name, '/');
 
-      mkdir(dst_file.c_str(), 0666);
+    // We only want data/ or Doukutsu.exe.
+    if (strncmp(first_slash, "/Doukutsu.exe", 13) == 0 ||
+        strncmp(first_slash, "/data", 5) == 0) {
+      printf("Copy from %s (in zip file) to %s\n", file_name, first_slash);
+      FILE* fdst = NULL;
+      int bytes_left;
+      int bytes_read;
+      int bytes_written;
+      char* last_slash;
 
-      CopyRecurse(new_http_path.c_str(), dst_dir);
+      if (unzOpenCurrentFile(zip_file) != UNZ_OK) {
+        fprintf(stderr, "unzOpenCurrentFile failed. \"%s\"\n", file_name);
+        goto cleanup;
+      }
+
+      file_open = true;
+
+      // Create parent directories.
+      last_slash = strrchr(first_slash, '/');
+      if (last_slash) {
+        *last_slash = 0;
+        mkdir(first_slash, 0666);
+        *last_slash = '/';
+      }
+
+      fdst = fileopen(first_slash, "w+");
+      if (!fdst) {
+        fprintf(stderr, "fopen(%s) failed: %d\n", first_slash, errno);
+        goto cleanup;
+      }
+
+      bytes_left = file_info.uncompressed_size;
+      while (bytes_left > 0) {
+        int bytes_to_read = std::min<size_t>(kCopyBufferSize, bytes_left);
+        bytes_read = unzReadCurrentFile(zip_file, &g_copy_buffer[0],
+                                        bytes_to_read);
+        if (bytes_read != bytes_to_read) {
+          fprintf(stderr, "unzReadCurrentFile(%d) was short, %d.\n",
+                  bytes_to_read, bytes_read);
+          fclose(fdst);
+          goto cleanup;
+        }
+
+        bytes_written = fwrite(&g_copy_buffer[0], 1, bytes_to_read, fdst);
+        if (bytes_written != bytes_to_read) {
+          fprintf(stderr, "fwrite(%d) was short, %d.\n",
+                  bytes_to_read, bytes_written);
+          goto cleanup;
+        }
+
+        bytes_left -= bytes_read;
+      }
+
+      fclose(fdst);
+      unzCloseCurrentFile(zip_file);
+      file_open = false;
+    }
+
+    if (unzGoToNextFile(zip_file) != UNZ_OK) {
+      break;
     }
   }
-  closedir(dir);
+
+cleanup:
+  if (zip_file && file_open)
+    unzCloseCurrentFile(zip_file);
+  if (zip_file)
+    unzClose(zip_file);
 }
 
 int my_main(int argc, const char **argv)
@@ -142,9 +204,13 @@ int my_main(int argc, const char **argv)
 	mount("", "/", "memfs", 0, NULL);
 	mount("", "/http", "httpfs", 0, "manifest=/manifest.txt");
 
-	CopyRecurse("/", "");
+	CopyFile("/http/cavestoryen.zip", "/cavestoryen.zip");
+	CopyFile("/http/font.ttf", "/font.ttf");
+	CopyFile("/http/sprites.sif", "/sprites.sif");
+	CopyFile("/http/tilekey.dat", "/tilekey.dat");
+	ExtractGameZip("/http/cavestoryen.zip");
 
-        mkdir("/pxt", 0666);
+	mkdir("/pxt", 0666);
 
 	PSEventSetFilter(PSE_INSTANCE_HANDLEINPUT | PSE_INSTANCE_DIDCHANGEFOCUS);
 
