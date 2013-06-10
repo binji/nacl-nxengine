@@ -295,9 +295,7 @@ static int AddBuffer(SSChannel *chan, int bytes)
 {
 	SSChunk *chunk = &chan->chunks[chan->head];
 #ifdef __native_client__
-        int samples = bytes / 4;
-        int mix_bytes = samples * 4;
-        bytes = samples * 2;
+	bytes = (bytes / 8) * 4;
 #endif
 	
 	if (bytes > chunk->bytelength)
@@ -317,17 +315,23 @@ static int AddBuffer(SSChannel *chan, int bytes)
 		
 		//stat("AddBuffer: reached end of chunk %d; new head is %d, and tail is %d", c, chan->head, chan->tail);
 	}
+
+#ifdef __native_client__
+	int samples = bytes / 8;
+	int mix_bytes = samples * 8;
+	bytes = samples * 4;
+#endif
 	
 //	stat("%d: Channel %d: Copying %d bytes from chunk %d @ %08x -- pos=%d, len=%d", SDL_GetTicks(), cnn, bytes, c, chunk->bytebuffer, chunk->bytepos, chunk->bytelength);
 #ifdef __native_client__
-        signed short* s16_mix = reinterpret_cast<signed short*>(&mixbuffer[mix_pos]);
-        signed short* s16_chunk = reinterpret_cast<signed short*>(&chunk->bytebuffer[chunk->bytepos]);
-
-        for (int i = 0; i < samples; ++i) {
-          signed short data = *s16_chunk++;
-          *s16_mix++ = data;
-          *s16_mix++ = data;
-        }
+	int32_t* s32_mix = (int32_t*)(&mixbuffer[mix_pos]);
+	int32_t* s32_chunk = (int32_t*)(&chunk->bytebuffer[chunk->bytepos]);
+	
+	for (int i = 0; i < samples; ++i) {
+		int32_t data = *s32_chunk++;
+		*s32_mix++ = data;
+		*s32_mix++ = data;
+	}
 	mix_pos += mix_bytes;
 #else
 	memcpy(&mixbuffer[mix_pos], &chunk->bytebuffer[chunk->bytepos], bytes);
@@ -360,18 +364,23 @@ int i;
 		while(bytestogo > 0)
 		{
 			bytes_copied = AddBuffer(&channel[c], bytestogo);
+			if (bytes_copied == 0)
+			{
+				break;
+			}
+
 			bytestogo -= bytes_copied;
 			
 			if (channel[c].head==channel[c].tail)
 			{		// ran out of chunks before buffer full
-				// clear remaining portion of mixbuffer
-				if (bytestogo)
-				{
-					memset(&mixbuffer[mix_pos], 0, bytestogo);
-				}
-				
 				break;
 			}
+		}
+		
+		// clear remaining portion of mixbuffer
+		if (bytestogo)
+		{
+			memset(&mixbuffer[mix_pos], 0, bytestogo);
 		}
 		
 		SDL_MixAudio(stream, mixbuffer, len, channel[c].volume);
