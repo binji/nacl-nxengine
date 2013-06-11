@@ -295,53 +295,61 @@ static int AddBuffer(SSChannel *chan, int bytes)
 {
 	SSChunk *chunk = &chan->chunks[chan->head];
 #ifdef __native_client__
-	bytes = (bytes / 8) * 4;
+	// Each sample is 4 bytes; 16-bit audio, stereo.
+	const int kSampleSize = 4;
+	const int kSampleSizeAlign = ~(kSampleSize - 1);
+	int mix_bytes = bytes;
+	// Each sample from chunk is doubled, so only request half as many
+	// bytes. Align up so we include the final sample, even if we can't
+	// double it.
+	bytes = ((bytes / 2) + (kSampleSize - 1)) & kSampleSizeAlign;
 #endif
 	
-	if (bytes > chunk->bytelength)
-	{
-		bytes = chunk->bytelength;
-	}
-	
 	// don't copy past end of chunk
-	if (chunk->bytepos+bytes > chunk->bytelength)
+	if (chunk->bytepos+bytes >= chunk->bytelength)
 	{
 		// add it to list of finished chunks
 		chan->FinishedChunkUserdata[chan->nFinishedChunks++] = chunk->userdata;
 		
 		// only add what's left. and advance the head pointer to the next chunk.
 		bytes = chunk->bytelength - chunk->bytepos;
+#ifdef __native_client__
+		// Align to 4, rounded down so we don't read outside the chunk buffer.
+		bytes &= kSampleSizeAlign;
+#endif
 		if (++chan->head >= MAX_QUEUED_CHUNKS) chan->head = 0;
 		
 		//stat("AddBuffer: reached end of chunk %d; new head is %d, and tail is %d", c, chan->head, chan->tail);
 	}
-
-#ifdef __native_client__
-	int samples = bytes / 8;
-	int mix_bytes = samples * 8;
-	bytes = samples * 4;
-#endif
 	
 //	stat("%d: Channel %d: Copying %d bytes from chunk %d @ %08x -- pos=%d, len=%d", SDL_GetTicks(), cnn, bytes, c, chunk->bytebuffer, chunk->bytepos, chunk->bytelength);
 #ifdef __native_client__
+	int samples = bytes / kSampleSize;
+	int mix_samples = MIN(samples * 2, mix_bytes / kSampleSize);
 	int32_t* s32_mix = (int32_t*)(&mixbuffer[mix_pos]);
 	int32_t* s32_chunk = (int32_t*)(&chunk->bytebuffer[chunk->bytepos]);
 	
-	for (int i = 0; i < samples; ++i) {
+	int mix_samples_left = mix_samples;
+	while (mix_samples_left >= 2)
+	{
 		int32_t data = *s32_chunk++;
 		*s32_mix++ = data;
 		*s32_mix++ = data;
+		mix_samples_left -= 2;
 	}
+	if (mix_samples_left > 0)
+	{
+		*s32_mix++ = *s32_chunk++;
+	}
+	
+	mix_bytes = mix_samples * kSampleSize;
 	mix_pos += mix_bytes;
+	chunk->bytepos += bytes;
+	return mix_bytes;
 #else
 	memcpy(&mixbuffer[mix_pos], &chunk->bytebuffer[chunk->bytepos], bytes);
 	mix_pos += bytes;
-#endif
 	chunk->bytepos += bytes;
-	
-#ifdef __native_client__
-        return mix_bytes;
-#else
 	return bytes;
 #endif
 }
