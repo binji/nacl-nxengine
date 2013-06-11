@@ -3,16 +3,25 @@
 var gameDataUrl = 'http://www.cavestory.org/downloads/cavestoryen.zip';
 var gameDataFile = 'cavestoryen.zip';
 
+function status(message) {
+  document.getElementById('message').textContent = '[ ' + message + ' ]';
+  console.log(message);
+}
+
+function clearStatus() {
+  document.getElementById('message').textContent = '';
+}
+
 function downloadGameData(fileSystem) {
   function onProgress(event) {
     if (event.lengthComputable) {
       var percentComplete = event.loaded * 100 / event.total;
-      console.log('Downloaded ' + percentComplete.toFixed(0) + '%');
+      status('downloaded ' + percentComplete.toFixed(0) + '%');
     }
   }
 
   function onError(event) {
-    console.log('Error downloading file.');
+    status('error downloading ' + gameDataUrl);
   }
 
   function onLoad(event) {
@@ -30,7 +39,7 @@ function downloadGameData(fileSystem) {
             });
 
             fileWriter.addEventListener('error', function (error) {
-              console.log('Unable to write ' + gameDataFile);
+              status('unable to write ' + gameDataFile);
             });
 
             console.log('Writing data...');
@@ -38,7 +47,7 @@ function downloadGameData(fileSystem) {
           });
         },
         function onGetFileError(error) {
-          console.log('Unable to create ' + gameDataFile);
+          status('unable to create ' + gameDataFile);
         });
   }
 
@@ -54,11 +63,16 @@ function downloadGameData(fileSystem) {
 }
 
 function createEmbed() {
-  console.log('Launching NEXE.');
+  clearStatus();
+
+  var manifest = chrome.runtime.getManifest();
+  var name = manifest.name;
+  var isDebug = name.indexOf('debug') !== -1;
+  var nmf = isDebug ? 'nx_debug.nmf' : 'nx_release.nmf';
 
   var embed = document.createElement('embed');
   embed.setAttribute('type', 'application/x-nacl');
-  embed.setAttribute('src', 'nx_debug.nmf');
+  embed.setAttribute('src', nmf);
   embed.setAttribute('width', '640');
   embed.setAttribute('height', '480');
   embed.setAttribute('ps_verbosity', '0');
@@ -70,22 +84,22 @@ function createEmbed() {
 
 document.addEventListener('DOMContentLoaded', function () {
   // Check to see if the data is in the html5 filesystem.
-  console.log('Opening filesystem...');
+  status('opening filesystem');
   window.webkitRequestFileSystem(window.PERSISTENT, 0,
       function onFilesystemRequestSuccess(fileSystem) {
         // Has the file already been downloaded?
-        console.log('Trying to get file ' + gameDataFile + '...');
+        status('opening file ' + gameDataFile);
         fileSystem.root.getFile(gameDataFile, {},
             function onGetFileSuccess(fileEntry) {
               // File's already there, start the NEXE.
               createEmbed();
             },
             function onGetFileError(err) {
-              console.log(gameDataFile + ' not found.');
+              status(gameDataFile + ' not found');
               downloadGameData(fileSystem);
             });
       },
-      function onFilesystemRequestError(err) {
-        console.log('Unable to open filesystem. error = ' + err);
+      function onFilesystemRequestError() {
+        status('unable to open filesystem');
       });
 });

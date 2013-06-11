@@ -282,7 +282,6 @@ Rule('manifest',
      implicit='script/generate_manifest.py')
 
 def GenerateManifest(out, config, with_key=True):
-  config_keys = {'config': config}
   key = '-k' if with_key else ''
   return Build(out, 'manifest', 'data/manifest.json.template',
                config=config, key=key)

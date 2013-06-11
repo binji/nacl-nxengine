@@ -158,7 +158,7 @@ int s, c, i;
 		char outfilename[MAXPATHLEN];
 		sprintf(outfilename, "pxt/fx%02x.pxt", snd[s].id);
 		status("[ %s ]", outfilename);
-		
+
 		FILE *fpo = fileopen(outfilename, "wb");
 		if (!fpo)
 		{

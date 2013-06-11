@@ -95,7 +95,9 @@ char buffer[128];
 		screen->Flip();
 	}
 	
+#if 0
 	SDL_Delay(50);
+#endif
 	
 	nexty += (fontheight + 1);
 	return 0;

@@ -1,5 +1,9 @@
 {
-  "name": "nxengine",
+[[if config == 'debug':]]
+  "name": "nxengine 1.0.0.3 (debug)",
+[[else:]]
+  "name": "nxengine 1.0.0.3",
+[[]]
   "version": "0.0.1",
   "manifest_version": 2,
   "description": "nxengine",
