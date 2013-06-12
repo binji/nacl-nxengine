@@ -1,8 +1,8 @@
 {
 [[if config == 'debug':]]
-  "name": "nxengine 1.0.0.3 (debug)",
+  "name": "NXEngine (debug)",
 [[else:]]
-  "name": "nxengine 1.0.0.3",
+  "name": "NXEngine",
 [[]]
   "version": "0.0.1",
   "manifest_version": 2,
