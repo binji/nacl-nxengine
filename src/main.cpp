@@ -30,6 +30,8 @@ int flipacceltime = 0;
 
 #include <string>
 
+#include <ppapi/cpp/instance.h>
+#include <ppapi/cpp/var.h>
 #include "ppapi_simple/ps_instance.h"
 #include "ppapi_simple/ps_main.h"
 #include "SDL/SDL_nacl.h"
@@ -394,6 +396,10 @@ shutdown: ;
 	sound_close();
 	tsc_close();
 	textbox.Deinit();
+#ifdef __native_client__
+        pp::Instance(PSGetInstanceId()).PostMessage(pp::Var("quit"));
+        while(1);
+#endif
 	return error;
 	
 ingame_error: ;

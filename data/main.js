@@ -4,12 +4,14 @@ var gameDataUrl = 'http://www.cavestory.org/downloads/cavestoryen.zip';
 var gameDataFile = 'cavestoryen.zip';
 
 function status(message) {
-  document.getElementById('message').textContent = '[ ' + message + ' ]';
+  var messageEl = document.getElementById('message');
+  messageEl.style.display = 'block';
+  messageEl.textContent = '[ ' + message + ' ]';
   console.log(message);
 }
 
 function clearStatus() {
-  document.getElementById('message').textContent = '';
+  document.getElementById('message').style.display = 'none';
 }
 
 function downloadGameData(fileSystem) {
@@ -79,6 +81,27 @@ function createEmbed() {
   embed.setAttribute('ps_stderr', '/dev/stderr');
 
   var listener = document.getElementById('listener');
+
+  listener.addEventListener('error', function() {
+    embed.parentNode.removeChild(embed);
+    status('error loading module');
+  }, true);
+
+  listener.addEventListener('crash', function() {
+    embed.parentNode.removeChild(embed);
+    status('module crashed');
+  }, true);
+
+  listener.addEventListener('message', function (e) {
+    if (typeof(e.data) !== 'string') {
+      return;
+    }
+
+    if (e.data === 'quit') {
+      window.close();
+    }
+  }, true);
+
   listener.appendChild(embed);
 }
 

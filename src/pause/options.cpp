@@ -127,7 +127,9 @@ Dialog *dlg = opt.dlg;
 
 	dlg->Clear();
 	
+#ifndef __native_client__
 	dlg->AddItem("Resolution: ", _res_change, _res_get);
+#endif
 	dlg->AddItem("Controls", EnterControlsMenu);
 	dlg->AddItem("Replay", EnterReplayMenu);
 	
