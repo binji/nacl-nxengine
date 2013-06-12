@@ -1,0 +1,11 @@
+--- all_interfaces.h	2013-06-05 09:15:00.959900715 -0700
++++ all_interfaces.h	2013-06-12 00:12:30.236938541 -0700
+@@ -39,7 +39,7 @@
+           const char*, int32_t, PP_CompletionCallback)
+ END_INTERFACE(FileIoInterface, PPB_FileIO)
+ 
+-BEGIN_INTERFACE(FileRefInterface, PPB_FileRef, PPB_FILEREF_INTERFACE_1_1)
++BEGIN_INTERFACE(FileRefInterface, PPB_FileRef, PPB_FILEREF_INTERFACE_1_0)
+   METHOD2(FileRefInterface, PP_Resource, Create, PP_Resource, const char*)
+   METHOD2(FileRefInterface, int32_t, Delete, PP_Resource, PP_CompletionCallback)
+   METHOD1(FileRefInterface, PP_Var, GetName, PP_Resource)

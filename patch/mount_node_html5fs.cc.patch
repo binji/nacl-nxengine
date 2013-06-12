@@ -1,0 +1,40 @@
+--- mount_node_html5fs.cc	2013-06-08 19:14:28.942157229 -0700
++++ mount_node_html5fs.cc	2013-06-12 00:13:16.484904542 -0700
+@@ -159,8 +159,8 @@
+   AutoLock lock(&lock_);
+ 
+   PP_FileInfo info;
+-  int32_t result = mount_->ppapi()->GetFileRefInterface()->Query(
+-      fileref_resource_, &info, PP_BlockUntilComplete());
++  int32_t result = mount_->ppapi()->GetFileIoInterface()->Query(
++      fileio_resource_, &info, PP_BlockUntilComplete());
+   if (result != PP_OK) {
+     errno = PPErrorToErrno(result);
+     return -1;
+@@ -239,8 +239,8 @@
+   AutoLock lock(&lock_);
+ 
+   PP_FileInfo info;
+-  int32_t result = mount_->ppapi()->GetFileRefInterface()->Query(
+-      fileref_resource_, &info, PP_BlockUntilComplete());
++  int32_t result = mount_->ppapi()->GetFileIoInterface()->Query(
++      fileio_resource_, &info, PP_BlockUntilComplete());
+   if (result != PP_OK) {
+     errno = PPErrorToErrno(result);
+     return -1;
+@@ -259,6 +259,7 @@
+   if (!MountNode::Init(Mount::OpenModeToPermission(perm)))
+     return false;
+ 
++#if 0
+   // First query the FileRef to see if it is a file or directory.
+   PP_FileInfo file_info;
+   mount_->ppapi()->GetFileRefInterface()->Query(fileref_resource_, &file_info,
+@@ -266,6 +267,7 @@
+   // If this is a directory, do not get a FileIO.
+   if (file_info.type == PP_FILETYPE_DIRECTORY)
+     return true;
++#endif
+ 
+   fileio_resource_= mount_->ppapi()->GetFileIoInterface()->Create(
+       mount_->ppapi()->GetInstance());
