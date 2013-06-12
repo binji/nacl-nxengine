@@ -252,6 +252,9 @@ for b in nmf.ForEach(name='nx', config=CONFIGS):
 DATA_FILES = [
   'background.js',
   'font.ttf',
+  'icon16.png',
+  'icon48.png',
+  'icon128.png',
   'index.html',
   'main.js',
   'sprites.sif',
