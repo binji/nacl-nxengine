@@ -4,7 +4,7 @@ CHROME_ARGS?=--user-data-dir=${DATA_DIR} --no-first-run --enable-nacl ${CHROME_E
 
 OUT_DIR=out
 BUILD_NINJA=build.ninja
-NACL_SDK_ROOT=${OUT_DIR}/nacl_sdk/pepper_canary
+NACL_SDK_ROOT=${OUT_DIR}/nacl_sdk/pepper_29
 NINJA=${OUT_DIR}/ninja
 NINJA_WRAP=build/ninja-wrap/ninja_wrap.py
 

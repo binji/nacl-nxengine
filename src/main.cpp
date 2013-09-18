@@ -40,7 +40,7 @@ int flipacceltime = 0;
 #include "platform/NaCl/unzip.h"
 
 
-int my_main(int argc, const char **argv);
+int my_main(int argc, char *argv[]);
 PPAPI_SIMPLE_REGISTER_MAIN(my_main);
 
 const size_t kCopyBufferSize = 32 * 1024;
@@ -154,37 +154,40 @@ void ExtractGameZip(const char* zip_path) {
         *last_slash = '/';
       }
 
-      fdst = fileopen(first_slash, "w+");
-      if (!fdst) {
-        fprintf(stderr, "fopen(%s) failed: %d\n", first_slash, errno);
-        goto cleanup;
-      }
-
-      bytes_left = file_info.uncompressed_size;
-      while (bytes_left > 0) {
-        int bytes_to_read = std::min<size_t>(kCopyBufferSize, bytes_left);
-        bytes_read = unzReadCurrentFile(zip_file, &g_copy_buffer[0],
-                                        bytes_to_read);
-        if (bytes_read != bytes_to_read) {
-          fprintf(stderr, "unzReadCurrentFile(%d) was short, %d.\n",
-                  bytes_to_read, bytes_read);
-          fclose(fdst);
+      // If uncompressed_size is 0, this is probably a directory, so skip it.
+      if (file_info.uncompressed_size != 0) {
+        fdst = fileopen(first_slash, "w+");
+        if (!fdst) {
+          fprintf(stderr, "fopen(%s) failed: %d\n", first_slash, errno);
           goto cleanup;
         }
 
-        bytes_written = fwrite(&g_copy_buffer[0], 1, bytes_to_read, fdst);
-        if (bytes_written != bytes_to_read) {
-          fprintf(stderr, "fwrite(%d) was short, %d.\n",
-                  bytes_to_read, bytes_written);
-          goto cleanup;
+        bytes_left = file_info.uncompressed_size;
+        while (bytes_left > 0) {
+          int bytes_to_read = std::min<size_t>(kCopyBufferSize, bytes_left);
+          bytes_read = unzReadCurrentFile(zip_file, &g_copy_buffer[0],
+                                          bytes_to_read);
+          if (bytes_read != bytes_to_read) {
+            fprintf(stderr, "unzReadCurrentFile(%d) was short, %d.\n",
+                    bytes_to_read, bytes_read);
+            fclose(fdst);
+            goto cleanup;
+          }
+
+          bytes_written = fwrite(&g_copy_buffer[0], 1, bytes_to_read, fdst);
+          if (bytes_written != bytes_to_read) {
+            fprintf(stderr, "fwrite(%d) was short, %d.\n",
+                    bytes_to_read, bytes_written);
+            goto cleanup;
+          }
+
+          bytes_left -= bytes_read;
         }
 
-        bytes_left -= bytes_read;
+        fclose(fdst);
+        unzCloseCurrentFile(zip_file);
+        file_open = false;
       }
-
-      fclose(fdst);
-      unzCloseCurrentFile(zip_file);
-      file_open = false;
     }
 
     if (unzGoToNextFile(zip_file) != UNZ_OK) {
@@ -199,7 +202,7 @@ cleanup:
     unzClose(zip_file);
 }
 
-int my_main(int argc, const char **argv)
+int my_main(int argc, char *argv[])
 {
 	SDL_NACL_SetInstance(PSGetInstanceId(), 640, 480);
 	umount("/");
